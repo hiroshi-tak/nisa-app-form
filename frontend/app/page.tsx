@@ -1,85 +1,24 @@
 "use client";
 
-import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
 
 export default function Home() {
-  const { isLoggedIn, login, logout } = useAuth();
 
   return (
     <main>
-      <h1>Frontend OK</h1>
+      <div className="max-w-md mx-auto flex flex-col gap-4">
+        <h1 className="text-3xl font-bold mb-6">
+          トップページ
+        </h1>
 
-      {isLoggedIn ? (
-        <>
-          <p>ログイン中</p>
-          <button onClick={logout}>Logout</button>
-        </>
-      ) : (
-          <button
-            onClick={async () => {
-              await login("a", "b");
-            }}
-          >
-            Login
-          </button>
-      )}
+        <Link href="/funds" className="text-blue-600 underline">
+          人気ファンド比較
+        </Link>
+
+        <Link href="/simulation" className="text-blue-600 underline">
+          積立シミュレーション
+        </Link>
+      </div>
     </main>
   );
 }
-
-/*
-export default function Home() {
-
-  const login = async () => {
-    console.log("login clicked");
-
-    const res = await fetch("http://localhost:8080/api/auth/login", {
-    //const res = await fetch("http://127.0.0.1:8080/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: "a",
-        password: "b",
-      }),
-    });
-
-    console.log("status:", res.status);
-
-    const token = await res.text();
-    console.log("token:", token);
-
-    localStorage.setItem("token", token); //保持
-  };
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (token) {
-      console.log("logged in");
-    } else {
-      console.log("not logged in");
-    }
-  }, []);
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    window.location.reload();
-  };
-
-  return (
-    <main>
-      <h1>Frontend OK</h1>
-
-      <button
-        type="button"
-        onClick={login}
-      >
-        Login
-      </button>
-
-    </main>
-  );
-}
-*/

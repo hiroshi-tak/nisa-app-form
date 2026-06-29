@@ -18,15 +18,3 @@ public class UserController {
         return "hello " + authentication.getName();
     }
 }
-
-/* 
-@RestController
-@RequestMapping("/api/user")
-public class UserController {
-
-    @GetMapping
-    public String me(Authentication authentication) {
-        return "hello " + authentication.getName();
-    }
-}
-*/

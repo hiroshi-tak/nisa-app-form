@@ -1,16 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-export function useAuth() {
+export function useAuth(requireAuth = false) {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const router = useRouter();
 
     const checkAuth = async () => {
         const res = await fetch("http://localhost:8080/api/user", {
             credentials: "include",
         });
 
-        setIsLoggedIn(res.ok);
+        const ok = res.ok;
+        setIsLoggedIn(ok);
+
+        if (requireAuth && !ok) {
+            router.push("/auth/login");
+        }
     };
 
     useEffect(() => {
@@ -28,6 +35,7 @@ export function useAuth() {
         });
 
         await checkAuth();
+        router.push("/");
     };
 
     const logout = async () => {
@@ -37,34 +45,8 @@ export function useAuth() {
         });
 
         setIsLoggedIn(false);
+        router.push("/auth/login");
     };
 
     return { isLoggedIn, login, logout };
 }
-
-/*
-export function useAuth() {
-    const [token, setToken] = useState<string | null>(null);
-
-    useEffect(() => {
-        setToken(localStorage.getItem("token"));
-    }, []);
-
-    const login = (newToken: string) => {
-        localStorage.setItem("token", newToken);
-        setToken(newToken);
-    };
-
-    const logout = () => {
-        localStorage.removeItem("token");
-        setToken(null);
-    };
-
-    return {
-        token,
-        login,
-        logout,
-        isLoggedIn: !!token,
-    };
-}
-*/
