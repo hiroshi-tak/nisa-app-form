@@ -1,5 +1,6 @@
 package com.example.backend.security;
 
+import java.util.List;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,9 +12,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 
+import jakarta.servlet.http.Cookie;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.io.IOException;
-import java.util.List;
+
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -24,28 +29,63 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String header = request.getHeader("Authorization");
+        System.out.println("=== JWT FILTER START ===");
+        System.out.println("URI: " + request.getRequestURI());
 
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
+        String token = null;
+/* 
+        String uri = request.getRequestURI();
 
-            try {
-                Claims claims = Jwts.parserBuilder()
-                        .setSigningKey(JwtUtil.getKey())
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody();
+        if (uri.startsWith("/api/auth/logout")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+*/
+        try {
+            // Authorization header
+            String header = request.getHeader("Authorization");
+            System.out.println("AUTH HEADER: " + header);
 
-                String username = claims.getSubject();
-
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(username, null, List.of());
-
-                SecurityContextHolder.getContext().setAuthentication(auth);
-
-            } catch (Exception e) {
-                // 無効トークンは無視
+            if (header != null && header.startsWith("Bearer ")) {
+                token = header.substring(7);
             }
+
+            // Cookie fallback
+            if (token == null && request.getCookies() != null) {
+                
+                for (Cookie c : request.getCookies()) {
+                    System.out.println("COOKIE: " + c.getName() + "=" + c.getValue());
+                    if ("token".equals(c.getName())) {
+                        token = c.getValue();
+                    }
+                }
+            }
+
+            if (token == null) {
+                System.out.println("NO TOKEN → SKIP AUTH");
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(JwtUtil.getKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            String username = claims.getSubject();
+
+            SecurityContextHolder.getContext().setAuthentication(
+                    new UsernamePasswordAuthenticationToken(username, null, List.of())
+            );
+
+            System.out.println("AUTH SUCCESS: " + username);
+
+        } catch (Exception e) {
+            System.out.println("JWT ERROR: " + e.getClass().getSimpleName());
+            System.out.println("MSG: " + e.getMessage());
+
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);

@@ -15,20 +15,13 @@ export default function Home() {
           <button onClick={logout}>Logout</button>
         </>
       ) : (
-        <button
-          onClick={async () => {
-            const res = await fetch("http://localhost:8080/api/auth/login", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ username: "a", password: "b" }),
-            });
-
-            const token = await res.text();
-            login(token);
-          }}
-        >
-          Login
-        </button>
+          <button
+            onClick={async () => {
+              await login("a", "b");
+            }}
+          >
+            Login
+          </button>
       )}
     </main>
   );
