@@ -3,29 +3,37 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function useAuth(requireAuth = false) {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+export function useAuth() {
+    const [status, setStatus] = useState<"loading" | "auth" | "guest">("loading");
     const router = useRouter();
 
-    const checkAuth = async () => {
-        const res = await fetch("http://localhost:8080/api/user", {
-            credentials: "include",
-        });
+    const fetchMe = async () => {
+        try {
+            const res = await fetch("http://localhost:8080/api/auth/me", {
+                credentials: "include",
+            });
 
-        const ok = res.ok;
-        setIsLoggedIn(ok);
+            if (!res.ok) {
+                setStatus("guest");
+                return false;
+            }
 
-        if (requireAuth && !ok) {
-            router.push("/auth/login");
+            const data = await res.json();
+
+            setStatus(data.loggedIn ? "auth" : "guest");
+            return data.loggedIn;
+        } catch (e) {
+            setStatus("guest");
+            return false;
         }
     };
 
     useEffect(() => {
-        checkAuth();
+        fetchMe();
     }, []);
 
     const login = async (username: string, password: string) => {
-        await fetch("http://localhost:8080/api/auth/login", {
+        const res = await fetch("http://localhost:8080/api/auth/login", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -34,8 +42,13 @@ export function useAuth(requireAuth = false) {
             body: JSON.stringify({ username, password }),
         });
 
-        await checkAuth();
+        if (!res.ok) {
+            return false;
+        }
+
+        await fetchMe();
         router.push("/");
+        return true;
     };
 
     const logout = async () => {
@@ -44,9 +57,15 @@ export function useAuth(requireAuth = false) {
             credentials: "include",
         });
 
-        setIsLoggedIn(false);
+        setStatus("guest");
         router.push("/auth/login");
     };
 
-    return { isLoggedIn, login, logout };
+    return {
+        status,
+        isLoggedIn: status === "auth",
+        loading: status === "loading",
+        login,
+        logout,
+    };
 }

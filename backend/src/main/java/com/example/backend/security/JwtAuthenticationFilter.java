@@ -33,14 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         System.out.println("URI: " + request.getRequestURI());
 
         String token = null;
-/* 
-        String uri = request.getRequestURI();
 
-        if (uri.startsWith("/api/auth/logout")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-*/
         try {
             // Authorization header
             String header = request.getHeader("Authorization");

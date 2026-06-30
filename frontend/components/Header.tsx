@@ -2,12 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { useEffect } from "react";
+
 
 export default function Header() {
     const router = useRouter();
-    const { isLoggedIn, logout } = useAuth();
 
     return (
         <header className="bg-blue-500 text-white sticky top-0 z-50">
@@ -24,12 +22,6 @@ export default function Header() {
                     <Link href="/">
                         トップページ
                     </Link>
-
-                    {isLoggedIn && (
-                        <button onClick={logout}>
-                            Logout
-                        </button>
-                    )}
                 </nav>
             </div>
         </header>

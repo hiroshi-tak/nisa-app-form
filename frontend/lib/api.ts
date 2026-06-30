@@ -1,4 +1,7 @@
+"use client";
+
 export async function apiFetch(url: string, options: RequestInit = {}) {
+
     let res = await fetch(url, {
         ...options,
         credentials: "include",
@@ -10,6 +13,7 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
 
     // AccessToken期限切れ
     if (res.status === 401 || res.status === 403) {
+
         const refreshRes = await fetch("http://localhost:8080/api/auth/refresh", {
             method: "POST",
             credentials: "include",
@@ -27,24 +31,10 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
             });
         } else {
             // refresh失敗 → ログアウト扱い
-            window.location.href = "/login";
+            window.location.href = "/auth/login";
         }
     }
 
     return res;
 }
 
-/*
-export async function apiFetch(url: string, options: RequestInit = {}) {
-    const token = localStorage.getItem("token");
-
-    return fetch(url, {
-        ...options,
-        headers: {
-            "Content-Type": "application/json",
-            ...(options.headers || {}),
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-    });
-}
-*/

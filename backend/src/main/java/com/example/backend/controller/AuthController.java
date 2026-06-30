@@ -1,5 +1,13 @@
 package com.example.backend.controller;
 
+
+import com.example.backend.entity.User;
+import com.example.backend.repository.UserRepository;
+import com.example.backend.service.CustomUserDetailsService;
+
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import com.example.backend.dto.RegisterRequest;
 import com.example.backend.security.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
@@ -7,132 +15,154 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.core.Authentication;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest req,
-                                        HttpServletResponse response) {
+        private final UserRepository userRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final CustomUserDetailsService userDetailsService;
 
-        //String token = JwtUtil.generateToken(req.getUsername());
-        String username = req.getUsername();
-        String accessToken = JwtUtil.generateToken(username);
-        String refreshToken = JwtUtil.generateRefreshToken(username);
-/* 
-        ResponseCookie cookie = ResponseCookie.from("token", token)
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(60 * 60)
-                .sameSite("Lax")
-                .build();
-*/
-        ResponseCookie accessCookie = ResponseCookie.from("token", accessToken)
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(60 * 15)
-                .sameSite("Lax")
-                .build();
+        public AuthController(
+                UserRepository userRepository,
+                PasswordEncoder passwordEncoder,
+                CustomUserDetailsService userDetailsService
+        ) {
+                this.userRepository = userRepository;
+                this.passwordEncoder = passwordEncoder;
+                this.userDetailsService = userDetailsService;
+        }
 
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(60 * 60 * 24 * 7)
-                .sameSite("Lax")
-                .build();
+        // 登録
+        @PostMapping("/register")
+        public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
 
-        //response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+                if (userRepository.findByUsername(request.username()).isPresent()) {
+                return ResponseEntity
+                        .badRequest()
+                        .body("ユーザーは既に存在します");
+                }
 
-        return ResponseEntity.ok("ok");
-    }
+                User user = new User();
+                user.setUsername(request.username());
+                user.setPassword(passwordEncoder.encode(request.password()));
 
-    public static class LoginRequest {
-        private String username;
-        private String password;
+                userRepository.save(user);
 
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
+                return ResponseEntity.ok("登録完了");
+        }
 
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
-    }
+        @PostMapping("/login")
+        public ResponseEntity<String> login(@RequestBody LoginRequest req,
+                                                HttpServletResponse response) {
 
-    @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
-/* 
-        ResponseCookie cookie = ResponseCookie.from("token", "")
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .sameSite("Lax")
-                .maxAge(0)
-                .build();
+                UserDetails user = userDetailsService.loadUserByUsername(req.getUsername());
 
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-*/
-        ResponseCookie accessCookie = ResponseCookie.from("token", "")
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .sameSite("Lax")
-                .maxAge(0)
-                .build();
+                if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
+                        return ResponseEntity.status(401).body("ログイン失敗");
+                }
 
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", "")
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .sameSite("Lax")
-                .maxAge(0)
-                .build();
+                String username = user.getUsername();
 
-        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+                String accessToken = JwtUtil.generateToken(username);
+                String refreshToken = JwtUtil.generateRefreshToken(username);
 
-        return ResponseEntity.ok().build();
-    }
+                ResponseCookie accessCookie = ResponseCookie.from("token", accessToken)
+                        .httpOnly(true)
+                        .secure(false)
+                        .path("/")
+                        .maxAge(60 * 15)
+                        .sameSite("Lax")
+                        .build();
 
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@CookieValue("refresh_token") String refreshToken) {
+                ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+                        .httpOnly(true)
+                        .secure(false)
+                        .path("/")
+                        .maxAge(60 * 60 * 24 * 7)
+                        .sameSite("Lax")
+                        .build();
 
-        String username = JwtUtil.validateAndGetUsername(refreshToken);
+                response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+                response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
-        String newAccessToken = JwtUtil.generateToken(username);
+                return ResponseEntity.ok("ok");
+        }
 
-        ResponseCookie cookie = ResponseCookie.from("token", newAccessToken)
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .sameSite("Lax")
-                .maxAge(60 * 15)
-                .build();
+        public static class LoginRequest {
+                private String username;
+                private String password;
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body("refreshed");
-    }
+                public String getUsername() { return username; }
+                public void setUsername(String username) { this.username = username; }
+
+                public String getPassword() { return password; }
+                public void setPassword(String password) { this.password = password; }
+        }
+
+        @PostMapping("/logout")
+        public ResponseEntity<Void> logout(HttpServletResponse response) {
+
+                ResponseCookie accessCookie = ResponseCookie.from("token", "")
+                        .httpOnly(true)
+                        .secure(false)
+                        .path("/")
+                        .sameSite("Lax")
+                        .maxAge(0)
+                        .build();
+
+                ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", "")
+                        .httpOnly(true)
+                        .secure(false)
+                        .path("/")
+                        .sameSite("Lax")
+                        .maxAge(0)
+                        .build();
+
+                response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+                response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+
+                return ResponseEntity.ok().build();
+        }
+
+        @PostMapping("/refresh")
+        public ResponseEntity<?> refresh(@CookieValue("refresh_token") String refreshToken) {
+
+                String username = JwtUtil.validateAndGetUsername(refreshToken);
+
+                String newAccessToken = JwtUtil.generateToken(username);
+
+                ResponseCookie cookie = ResponseCookie.from("token", newAccessToken)
+                        .httpOnly(true)
+                        .secure(false)
+                        .path("/")
+                        .sameSite("Lax")
+                        .maxAge(60 * 15)
+                        .build();
+
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                        .body("refreshed");
+        }
+
+        @GetMapping("/me")
+        public ResponseEntity<?> me(Authentication auth) {
+
+                if (auth == null) {
+                return ResponseEntity.status(401)
+                        .body(Map.of("loggedIn", false));
+                }
+
+                return ResponseEntity.ok(
+                        Map.of(
+                                "loggedIn", true,
+                                "username", auth.getName()
+                        )
+                );
+        }
 
 }
 
-/* 
-@RestController
-@RequestMapping("/api/auth")
-public class AuthController {
-
-    @PostMapping("/login")
-    public String login(@RequestBody LoginRequest req) {
-        return JwtUtil.generateToken(req.username);
-        //return "dummy-jwt-token";
-    }
-
-    public static class LoginRequest {
-        public String username;
-        public String password;
-    }
-}
-*/
