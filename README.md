@@ -88,6 +88,8 @@ erDiagram USER ||--o{ POST : has USER { long id string username string password 
 ```
 
 ## シーケンス図
+
+### LOGIN
 ```mermaid
 sequenceDiagram
     autonumber
@@ -107,6 +109,17 @@ sequenceDiagram
     A-->>B: Set-Cookie (access token)
     A-->>B: Set-Cookie (refresh token)
     B-->>C: login success
+```
+
+### API ACCESS
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant C as Client (Next.js)
+    participant B as Browser
+    participant A as Spring Boot API
+    participant F as JwtAuthenticationFilter
 
     %% =========================
     %% API ACCESS
