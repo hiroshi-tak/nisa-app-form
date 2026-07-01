@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:16
     container_name: db
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_DB: nisa_db
       POSTGRES_USER: postgres
@@ -17,7 +17,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.prod
     container_name: backend
-    restart: always
+    restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/nisa_db
       SPRING_DATASOURCE_USERNAME: postgres
@@ -29,17 +29,19 @@ services:
       - db
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.prod
+#    build:
+#      context: ./frontend
+#      dockerfile: Dockerfile.prod
+    image: nisa-frontend:latest
     container_name: frontend
-    restart: always
+    restart: unless-stopped
     depends_on:
       - backend
 
   nginx:
     image: nginx:latest
     container_name: nginx
+    restart: unless-stopped
     ports:
       - "80:80"
       #- "443:443"
