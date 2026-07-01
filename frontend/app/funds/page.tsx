@@ -4,8 +4,6 @@ import AuthGuard from "@/components/AuthGuard";
 import { useEffect, useState } from 'react';
 import { apiFetch }  from "@/lib/api";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
-
 type Fund = {
     id: number;
     name: string;
@@ -40,7 +38,7 @@ export default function FundsPage() {
         const load = async () => {
 
             try {
-                const res = await apiFetch(`${API_BASE}/api/funds`,{
+                const res = await apiFetch(`/api/funds`,{
                 });
 
                 const data = await res.json();
@@ -120,7 +118,7 @@ export default function FundsPage() {
                                 setScoreLoading(true);
 
                                 try {
-                                    const res = await apiFetch(`${API_BASE}/api/funds/score`, {
+                                    const res = await apiFetch(`/api/funds/score`, {
                                     });
 
                                     const data = await res.json();
@@ -247,7 +245,7 @@ export default function FundsPage() {
                                 setLoading(true);
 
                                 try {
-                                    const res = await apiFetch(`${API_BASE}/api/funds/analysis`, {
+                                    const res = await apiFetch(`/api/funds/analysis`, {
                                         method: "POST",
                                         headers: {
                                             "Content-Type": "application/json",
